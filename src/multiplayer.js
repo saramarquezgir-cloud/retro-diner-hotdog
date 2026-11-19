@@ -11,8 +11,17 @@ export class MultiplayerClient {
 
   connect() {
     return new Promise((resolve, reject) => {
-      const host = window.location.hostname || 'localhost';
-      const wsUrl = `ws://${host}:3001`;
+      let wsUrl;
+      const isHttps = window.location.protocol === 'https:';
+      const isViteDev = window.location.port === '5173';
+
+      if (isViteDev) {
+        // Local Vite dev server proxying to backend on port 3000
+        wsUrl = `ws://${window.location.hostname || 'localhost'}:3000`;
+      } else {
+        // Production (e.g. Render) or Express serving static build
+        wsUrl = `${isHttps ? 'wss:' : 'ws:'}//${window.location.host}`;
+      }
 
       this.ws = new WebSocket(wsUrl);
 

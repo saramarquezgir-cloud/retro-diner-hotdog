@@ -1,9 +1,47 @@
+import express from 'express';
+import http from 'http';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { WebSocketServer, WebSocket } from 'ws';
 
-const PORT = 3001;
-const wss = new WebSocketServer({ port: PORT });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Active rooms map: roomCode -> { host, guest, timer, duration, state, scores: { host: {...}, guest: {...} } }
+const app = express();
+const server = http.createServer(app);
+
+// 1. Health check route (PROYECTO requirement)
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true });
+});
+
+// 2. Serve static frontend files (compiled dist or public root)
+const distDir = path.join(__dirname, 'dist');
+const publicDir = path.join(__dirname, 'public');
+
+if (fs.existsSync(distDir)) {
+  app.use(express.static(distDir));
+}
+if (fs.existsSync(publicDir)) {
+  app.use(express.static(publicDir));
+}
+app.use(express.static(__dirname));
+
+// Fallback handler for SPA
+app.use((req, res) => {
+  const distIndex = path.join(distDir, 'index.html');
+  if (fs.existsSync(distIndex)) {
+    res.sendFile(distIndex);
+  } else {
+    res.sendFile(path.join(__dirname, 'index.html'));
+  }
+});
+
+// 3. Attach WebSocket server to the same HTTP server
+const wss = new WebSocketServer({ server });
+
+// Active rooms map: roomCode -> { host, guest, timer, duration, state, stats: { host: {...}, guest: {...} } }
 const rooms = new Map();
 
 function generateRoomCode() {
@@ -197,4 +235,8 @@ wss.on('connection', (ws) => {
   });
 });
 
-console.log(`[Multiplayer] Retro Diner WebSocket Server running on ws://localhost:${PORT}`);
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`🚀 Retro Diner Server corriendo en puerto ${PORT}`);
+  console.log(`👉 Visita: http://localhost:${PORT}`);
+});
