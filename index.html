@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌭 Retro Diner Hot Dog - 1950s Cooking Game</title>
+  <!-- Google Fonts retro 50s -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Fredoka:wght@500;600;700&family=Righteous&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+  <!-- 3D WebGL Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- HUD Overlay -->
+  <div id="hud">
+    <!-- Top Bar -->
+    <header class="diner-header">
+      <div class="header-left">
+        <div class="neon-badge level-badge">NIVEL <span id="level-num">1</span></div>
+        <div class="stat-pill">
+          <span class="icon">⭐</span>
+          <span id="score-val" class="val">0</span>
+        </div>
+        <div class="stat-pill money-pill">
+          <span class="icon">💵</span>
+          <span id="money-val" class="val">$0.00</span>
+        </div>
+      </div>
+
+      <div class="diner-logo">
+        <span class="logo-star">★</span> RETRO DINER <span class="logo-sub">HOT DOGS</span> <span class="logo-star">★</span>
+      </div>
+
+      <div class="header-right">
+        <button id="btn-multiplayer" class="btn-retro duel-btn">⚔️ Duelo 1 vs 1</button>
+        <button id="btn-sound" class="btn-icon" title="Sonido">🔊</button>
+        <button id="btn-ranking" class="btn-retro">🏆 Ranking</button>
+      </div>
+    </header>
+
+    <!-- Real-Time Duel Battle HUD (Active during 1 vs 1 Match) -->
+    <div id="duel-battle-bar" class="duel-battle-bar hidden">
+      <div class="duel-player-pill you-pill">
+        <span class="player-avatar">🧑‍🍳</span>
+        <div class="player-details">
+          <span class="player-tag">TÚ (<span id="duel-my-name">Tú</span>)</span>
+          <span class="player-dogs"><strong id="duel-my-dogs">0</strong> perros</span>
+        </div>
+      </div>
+
+      <div class="duel-timer-center">
+        <span class="timer-flame">⏱️</span>
+        <span id="duel-clock" class="duel-clock">60s</span>
+      </div>
+
+      <div class="duel-player-pill opponent-pill">
+        <div class="player-details text-right">
+          <span class="player-tag"><span id="duel-opp-name">Rival</span></span>
+          <span class="player-dogs"><strong id="duel-opp-dogs">0</strong> perros</span>
+        </div>
+        <span class="player-avatar">🧑‍🍳</span>
+      </div>
+    </div>
+
+    <!-- Rush Hour Chaos Alert Banner (flashes when 2 orders are active!) -->
+    <div id="rush-alert-banner" class="rush-alert-banner hidden">
+      🔥 ¡HORA PICO: 2 CLIENTES ESPERANDO! 🔥
+    </div>
+
+    <!-- Center Stage: Customer Floating Area (Supports 2 simultaneous orders!) -->
+    <div class="customer-stage-area multi-customer">
+      <!-- Customer 0 Station (Left) -->
+      <div class="customer-order-station" id="station-0">
+        <div class="serve-bell-wrapper">
+          <button id="btn-serve-0" class="btn-serve-bell" data-slot="0" disabled>
+            <div class="bell-glow-ring"></div>
+            <span class="bell-icon-large">🛎️</span>
+            <span class="bell-label" id="bell-label-0">¡Entregar!</span>
+          </button>
+        </div>
+
+        <div id="order-bubble-0" class="speech-bubble hidden">
+          <div class="customer-info">
+            <span id="customer-name-0" class="customer-name">Frankie</span>
+            <span class="order-title">quiere:</span>
+          </div>
+          <div id="order-items-0" class="order-items"></div>
+          <div class="patience-container">
+            <div class="patience-bar-bg">
+              <div id="patience-bar-0" class="patience-bar-fill"></div>
+            </div>
+          </div>
+          <div class="bubble-arrow"></div>
+        </div>
+      </div>
+
+      <!-- Customer 1 Station (Right - Active in Rush Hour / Level 2+) -->
+      <div class="customer-order-station" id="station-1">
+        <div class="serve-bell-wrapper">
+          <button id="btn-serve-1" class="btn-serve-bell" data-slot="1" disabled>
+            <div class="bell-glow-ring"></div>
+            <span class="bell-icon-large">🛎️</span>
+            <span class="bell-label" id="bell-label-1">¡Entregar!</span>
+          </button>
+        </div>
+
+        <div id="order-bubble-1" class="speech-bubble hidden">
+          <div class="customer-info">
+            <span id="customer-name-1" class="customer-name">Peggy Sue</span>
+            <span class="order-title">quiere:</span>
+          </div>
+          <div id="order-items-1" class="order-items"></div>
+          <div class="patience-container">
+            <div class="patience-bar-bg">
+              <div id="patience-bar-1" class="patience-bar-fill"></div>
+            </div>
+          </div>
+          <div class="bubble-arrow"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Kitchen Counter Bar (Purely Visual Stations) -->
+    <footer class="kitchen-counter-bar">
+      <!-- 1. PARRILLA (Visual Grill Station) -->
+      <div class="counter-station grill-station" title="Parrilla: Haz clic para asar salchichas">
+        <div class="station-icon-tag">🔥 Parrilla</div>
+        <div class="grill-rack">
+          <div class="grill-slot" id="slot-0" data-slot="0">
+            <div class="grill-slot-bars"></div>
+            <div class="slot-empty-icon">
+              <span class="plus-sign">+</span>
+              <svg class="wiener-svg ghost" viewBox="0 0 60 22">
+                <path d="M 8 11 C 8 5, 20 6, 30 6 C 40 6, 52 5, 52 11 C 52 17, 40 16, 30 16 C 20 16, 8 17, 8 11 Z" stroke="#ffd166" stroke-dasharray="3,2" fill="none" stroke-width="2"/>
+              </svg>
+              <span class="slot-empty-label">Asar</span>
+            </div>
+            <div class="slot-active hidden">
+              <svg class="wiener-svg wiener-cooking" viewBox="0 0 60 22">
+                <path class="wiener-body" d="M 8 11 C 8 4.5, 20 5.5, 30 5.5 C 40 5.5, 52 4.5, 52 11 C 52 17.5, 40 16.5, 30 16.5 C 20 16.5, 8 17.5, 8 11 Z" fill="#ef7a7a"/>
+                <line class="wiener-mark" x1="20" y1="7" x2="23" y2="15" stroke="#4a140d" stroke-width="2" stroke-linecap="round"/>
+                <line class="wiener-mark" x1="30" y1="7" x2="33" y2="15" stroke="#4a140d" stroke-width="2" stroke-linecap="round"/>
+                <line class="wiener-mark" x1="40" y1="7" x2="43" y2="15" stroke="#4a140d" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <div class="cook-meter"><div class="cook-fill"></div></div>
+              <span class="cook-badge">Asando</span>
+            </div>
+          </div>
+
+          <div class="grill-slot" id="slot-1" data-slot="1">
+            <div class="grill-slot-bars"></div>
+            <div class="slot-empty-icon">
+              <span class="plus-sign">+</span>
+              <svg class="wiener-svg ghost" viewBox="0 0 60 22">
+                <path d="M 8 11 C 8 5, 20 6, 30 6 C 40 6, 52 5, 52 11 C 52 17, 40 16, 30 16 C 20 16, 8 17, 8 11 Z" stroke="#ffd166" stroke-dasharray="3,2" fill="none" stroke-width="2"/>
+              </svg>
+              <span class="slot-empty-label">Asar</span>
+            </div>
+            <div class="slot-active hidden">
+              <svg class="wiener-svg wiener-cooking" viewBox="0 0 60 22">
+                <path class="wiener-body" d="M 8 11 C 8 4.5, 20 5.5, 30 5.5 C 40 5.5, 52 4.5, 52 11 C 52 17.5, 40 16.5, 30 16.5 C 20 16.5, 8 17.5, 8 11 Z" fill="#ef7a7a"/>
+                <line class="wiener-mark" x1="20" y1="7" x2="23" y2="15" stroke="#4a140d" stroke-width="2" stroke-linecap="round"/>
+                <line class="wiener-mark" x1="30" y1="7" x2="33" y2="15" stroke="#4a140d" stroke-width="2" stroke-linecap="round"/>
+                <line class="wiener-mark" x1="40" y1="7" x2="43" y2="15" stroke="#4a140d" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <div class="cook-meter"><div class="cook-fill"></div></div>
+              <span class="cook-badge">Asando</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. PANERA (Visual Bread Basket) -->
+      <div class="counter-station bread-station" id="btn-panera" title="Panera: Haz clic para tomar un pan">
+        <div class="station-icon-tag">🥖 Panera</div>
+        <div class="bread-basket">
+          <div class="bread-bun bun-1">🥖</div>
+          <div class="bread-bun bun-2">🥖</div>
+          <div class="bread-bun bun-3">🥖</div>
+          <div class="bread-basket-label">Tomar Pan</div>
+        </div>
+      </div>
+
+      <!-- 3. MESA DE ARMADO / PLATO (Assembly Plate) -->
+      <div class="counter-station plate-station" title="Plato de preparación">
+        <div class="station-icon-tag">🍽️ Tu Plato</div>
+        <div class="assembly-plate-visual">
+          <div id="plate-dog-display" class="plate-dog-display">
+            <div class="empty-plate-hint">Toma un pan de la panera</div>
+          </div>
+          <button id="btn-trash" class="btn-trash" title="Tirar a la basura y empezar de nuevo">🗑️</button>
+        </div>
+      </div>
+
+      <!-- 4. SALSAS E INGREDIENTES (Visual Dispensers & Bowls) -->
+      <div class="counter-station toppings-station">
+        <div class="station-icon-tag">🥫 Ingredientes</div>
+        <div class="visual-toppings-row">
+          <!-- Ketchup Squeeze Bottle -->
+          <button class="visual-dispenser ketchup-dispenser" data-topping="ketchup" title="Agregar Ketchup">
+            <div class="bottle-nozzle"></div>
+            <div class="bottle-body bottle-red">
+              <span class="bottle-label">Ketchup</span>
+            </div>
+          </button>
+
+          <!-- Mustard Squeeze Bottle -->
+          <button class="visual-dispenser mustard-dispenser" data-topping="mustard" title="Agregar Mostaza">
+            <div class="bottle-nozzle"></div>
+            <div class="bottle-body bottle-yellow">
+              <span class="bottle-label">Mostaza</span>
+            </div>
+          </button>
+
+          <!-- Onion Ceramic Bowl -->
+          <button class="visual-bowl onion-bowl" data-topping="onion" title="Agregar Cebolla picada">
+            <div class="bowl-rim">
+              <span class="bowl-emoji">🧅</span>
+            </div>
+            <span class="bowl-label">Cebolla</span>
+          </button>
+
+          <!-- Cheese Ceramic Bowl -->
+          <button class="visual-bowl cheese-bowl" data-topping="cheese" title="Agregar Queso">
+            <div class="bowl-rim">
+              <span class="bowl-emoji">🧀</span>
+            </div>
+            <span class="bowl-label">Queso</span>
+          </button>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Notification Banner (Popup alerts) -->
+  <div id="toast" class="toast-popup hidden"></div>
+
+  <!-- Modal: Pantalla de Bienvenida -->
+  <div id="modal-start" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-diner-sign">★ 1950s DINER ★</div>
+      <h1>¡Bienvenido a Retro Diner Hot Dogs!</h1>
+      <p class="subtitle">La auténtica cocina de perros calientes estilo años 50</p>
+      
+      <div class="instructions-box">
+        <h3>📋 Cómo jugar (100% con tu mouse):</h3>
+        <ul>
+          <li><strong>1. Asa salchichas:</strong> Haz clic en la parrilla para poner salchichas. ¡Sácalas cuando estén doradas!</li>
+          <li><strong>2. Toma pan:</strong> Haz clic en la <em>Panera</em> para poner un pan en tu plato.</li>
+          <li><strong>3. Monta la salchicha:</strong> Haz clic en la salchicha cocida para ponerla en el pan.</li>
+          <li><strong>4. Salsas y aderezos:</strong> Haz clic en las botellas y tazones según lo que pida el cliente.</li>
+          <li><strong>5. ¡Entrega!:</strong> Haz clic en la campana <strong>🛎️ ¡ENTREGAR ORDEN!</strong> arriba del cliente.</li>
+        </ul>
+      </div>
+
+      <button id="btn-play-game" class="btn-primary-retro">¡Comenzar el Turno! 🛎️</button>
+    </div>
+  </div>
+
+  <!-- Modal: Ranking de Mejores Puntuaciones -->
+  <div id="modal-leaderboard" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-diner-sign">🏆 HALL OF FAME 🏆</div>
+      <h2>Mejores Cocineros del Diner</h2>
+      <div class="leaderboard-table-wrapper">
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Cocinero</th>
+              <th>Puntos</th>
+              <th>Propinas</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-rows">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+      <button id="btn-close-ranking" class="btn-secondary-retro">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Modal: Nivel Completado -->
+  <div id="modal-level-complete" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-diner-sign">🎉 ¡TURNO COMPLETADO! 🎉</div>
+      <h2 id="level-complete-title">¡Gran trabajo en el Nivel 1!</h2>
+      <div class="level-stats">
+        <div class="stat-row">
+          <span>Clientes felices:</span>
+          <strong id="stat-happy-clients">0</strong>
+        </div>
+        <div class="stat-row">
+          <span>Propinas ganadas:</span>
+          <strong id="stat-level-tips" class="money-text">$0.00</strong>
+        </div>
+        <div class="stat-row">
+          <span>Puntaje acumulado:</span>
+          <strong id="stat-level-score" class="score-text">0 pts</strong>
+        </div>
+      </div>
+      <button id="btn-next-level" class="btn-primary-retro">¡Siguiente Nivel! 🚀</button>
+    </div>
+  </div>
+
+  <!-- Modal: Lobby Multijugador (Duelo 1 vs 1) -->
+  <div id="modal-multiplayer-lobby" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-diner-sign">⚔️ RETO 1 VS 1 ⚔️</div>
+      <h2>Duelo de Perros Calientes</h2>
+      <p class="subtitle">¿Quién logra preparar y entregar más perros en 60 segundos?</p>
+
+      <div class="diner-input-group">
+        <label for="mp-player-name">Tu Nombre de Chef:</label>
+        <input type="text" id="mp-player-name" class="diner-input" placeholder="Tu nombre..." value="Chef Retro" maxlength="14">
+      </div>
+
+      <!-- Action Choice: Create or Join -->
+      <div id="mp-choice-view" class="mp-choice-view">
+        <div class="mp-box">
+          <h3>Crear Nuevo Reto</h3>
+          <p>Genera un código para que tu amigo se una</p>
+          <button id="btn-create-room" class="btn-primary-retro btn-sm">Crear Sala 🌭</button>
+        </div>
+
+        <div class="mp-divider">O</div>
+
+        <div class="mp-box">
+          <h3>Unirse a un Reto</h3>
+          <input type="text" id="mp-join-code" class="diner-input" placeholder="Ej: DINER-88" maxlength="10">
+          <button id="btn-join-room" class="btn-secondary-retro btn-sm">Unirse al Duelo ⚡</button>
+        </div>
+      </div>
+
+      <!-- Waiting Room View (Active after creating or joining) -->
+      <div id="mp-waiting-view" class="mp-waiting-view hidden">
+        <div class="room-code-badge">
+          <span>Código de Sala:</span>
+          <strong id="mp-display-code">DINER-XXXX</strong>
+          <button id="btn-copy-code" class="btn-icon-tiny" title="Copiar código">📋</button>
+        </div>
+
+        <div class="lobby-status-banner">
+          <div class="spinner-ring"></div>
+          <span id="mp-status-text">Esperando al segundo jugador...</span>
+        </div>
+
+        <div class="lobby-players-list">
+          <div class="lobby-player-card">
+            <span>🧑‍🍳</span>
+            <strong id="lobby-host-name">Anfitrión</strong>
+            <span class="badge-ready">LISTO</span>
+          </div>
+          <div class="lobby-player-card">
+            <span>🧑‍🍳</span>
+            <strong id="lobby-guest-name">Esperando rival...</strong>
+            <span id="lobby-guest-badge" class="badge-waiting">...</span>
+          </div>
+        </div>
+
+        <button id="btn-start-duel" class="btn-primary-retro hidden">¡COMENZAR EL RETO! 🔥</button>
+      </div>
+
+      <button id="btn-close-mp" class="btn-secondary-retro">Volver al Modo Solitario</button>
+    </div>
+  </div>
+
+  <!-- Modal: Resultados del Duelo 1 vs 1 -->
+  <div id="modal-duel-results" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div id="duel-result-sign" class="modal-diner-sign">🏆 ¡FIN DEL DUELO! 🏆</div>
+      <h1 id="duel-winner-title">¡VICTORIA!</h1>
+      <p id="duel-winner-subtitle" class="subtitle">¡Has sido el cocinero más rápido del diner!</p>
+
+      <div class="duel-scoreboard-versus">
+        <div class="versus-card versus-you">
+          <div class="versus-avatar">🧑‍🍳</div>
+          <h3 id="versus-you-name">Tú</h3>
+          <div class="versus-dogs-count"><span id="versus-you-dogs">0</span> 🌭</div>
+          <div class="versus-score-val"><span id="versus-you-score">0</span> pts</div>
+        </div>
+
+        <div class="versus-badge">VS</div>
+
+        <div class="versus-card versus-opp">
+          <div class="versus-avatar">🧑‍🍳</div>
+          <h3 id="versus-opp-name">Rival</h3>
+          <div class="versus-dogs-count"><span id="versus-opp-dogs">0</span> 🌭</div>
+          <div class="versus-score-val"><span id="versus-opp-score">0</span> pts</div>
+        </div>
+      </div>
+
+      <div class="duel-actions-row">
+        <button id="btn-duel-rematch" class="btn-primary-retro">¡Revancha! 🔁</button>
+        <button id="btn-duel-exit" class="btn-secondary-retro">Salir al Menú</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core Scripts -->
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
